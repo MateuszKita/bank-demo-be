@@ -6,7 +6,7 @@ import {IUserDTO} from '../models/users.model';
 import {USER_ERROR} from '../models/users.constans';
 
 export const UserSchema: Schema = new Schema({
-    name: {
+    login: {
         type: String,
         required: true,
         trim: true
@@ -26,7 +26,58 @@ export const UserSchema: Schema = new Schema({
             type: String,
             required: true
         }
-    }]
+    }],
+    firstName: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    lastName: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    dateOfBirth: {
+        type: Date,
+        required: true
+    },
+    address: {
+        postalCode: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        city: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        street: {
+            type: String,
+            required: true,
+            trim: true,
+            minlength: 6,
+            maxlength: 6,
+        }
+    },
+    parentsNames: {
+        mother: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        father: {
+            type: String,
+            required: true,
+            trim: true
+        }
+    },
+    accountNumber: {
+        type: Number,
+        minlength: 26,
+        maxlength: 26,
+        required: true,
+    }
 });
 
 UserSchema.pre('save', async function(next) {

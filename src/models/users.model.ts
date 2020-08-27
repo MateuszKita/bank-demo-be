@@ -8,7 +8,7 @@ export interface IUser {
     tokens: IUserToken[];
     firstName: string;
     lastName: string;
-    dateOfBirth: string;
+    dateOfBirth: Date;
     address: {
         postalCode: string;
         city: string;
