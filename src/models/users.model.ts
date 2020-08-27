@@ -3,16 +3,22 @@ import {Document} from 'mongoose';
 
 export interface IUser {
     _id: ObjectId | any;
-    name: string;
-    email: string;
+    login: string;
     password: string;
     tokens: IUserToken[];
-}
-
-export interface ISimpleUser {
-    email: string;
-    name: string;
-    _id: ObjectId;
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    address: {
+        postalCode: string;
+        city: string;
+        street: string;
+    };
+    parentsNames: {
+        mother: string;
+        father: string;
+    };
+    accountNumber: string;
 }
 
 export interface IUserDTO extends IUser, Document {
