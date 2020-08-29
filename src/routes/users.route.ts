@@ -86,10 +86,20 @@ function getUniqueRandomNumbersInRange(count: number, range: number) {
 
 router.post('/login', async (req: Request, res: Response) => {
     try {
-        const user = await (User as any).findByCredentials(req.body.email, req.body.password);
+        const {login, password} = req.body as IUser;
+        if (password.length !== 6) {
+            throw new Error(USER_ERROR.PASSWORD_INCORRECT);
+        }
+        const user = await (User as any).findByCredentials(login, password);
+        if (user.randomIndexes.length !== 6) {
+            throw new Error(USER_ERROR.PASSWORD_INCORRECT);
+        }
         const token = await user.generateAuthToken();
-        res.send({user, token});
+        user.randomIndexes = [];
+        await user.save();
+        res.send({token});
     } catch (e) {
+        console.error(e);
         let httpStatus = BAD_REQUEST;
         let message = 'Could not log in...';
         switch (e.message) {

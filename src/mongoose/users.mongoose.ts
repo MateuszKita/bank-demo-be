@@ -128,8 +128,13 @@ UserSchema.statics.findByLogin = async (login: string) => {
     return user;
 };
 
-async function compareHashedStringArray(password: string[], hashedPassword: string[]) {
-    return password.every((char: string, index: number) => compare(char, hashedPassword[index]));
+async function compareHashedStringArray(password: string[], hashedPassword: string[], indexes: number[]) {
+    return password
+        .map((char: string, index: number) => ({char, originalIndex: index}))
+        .filter((_, index) => indexes.includes(index))
+        .every((charObj: { char: string, originalIndex: number }) => hashedPassword[charObj.originalIndex]
+            ? compare(charObj.char, hashedPassword[charObj.originalIndex])
+            : true);
 }
 
 UserSchema.statics.findByCredentials = async (login: string, password: string[]) => {
@@ -139,7 +144,7 @@ UserSchema.statics.findByCredentials = async (login: string, password: string[])
         throw new Error(USER_ERROR.LOGIN_NOT_FOUND);
     }
 
-    const isMatch = compareHashedStringArray(password, user.password);
+    const isMatch = await compareHashedStringArray(password, user.password, user.randomIndexes);
 
     if (!isMatch) {
         throw new Error(USER_ERROR.PASSWORD_INCORRECT);
