@@ -41,13 +41,52 @@ function generateLogin(firstName: string, lastName: string) {
 }
 
 /******************************************************************************
+ *                       Get login data (random indexes of password) - "GET /users/login"
+ ******************************************************************************/
+
+router.get('/login', async (req: Request, res: Response) => {
+    try {
+        const user = await (User as any).findByLogin(req.body.login);
+        let randomIndexesForMask: number[] = [];
+        while (randomIndexesForMask.length === 0 || randomIndexesForMask.every((indexForMask) => indexForMask >= user.password.length)) {
+            randomIndexesForMask = getUniqueRandomNumbersInRange(6, 20);
+        }
+        user.randomIndexes = randomIndexesForMask;
+        await user.save();
+        res.send({indexesForMask: randomIndexesForMask});
+    } catch (e) {
+        console.error(e);
+        let httpStatus = BAD_REQUEST;
+        let message = 'Could not get login data';
+        switch (e.message) {
+            case USER_ERROR.LOGIN_NOT_FOUND:
+                httpStatus = NOT_FOUND;
+                message = 'Could not find user with given login';
+                break;
+            default:
+        }
+        res.status(httpStatus).send({message});
+    }
+});
+
+function getUniqueRandomNumbersInRange(count: number, range: number) {
+    const randomNumbers = [];
+    while (randomNumbers.length < count) {
+        const randomNumber = Math.floor(Math.random() * range) + 1;
+        if (randomNumbers.indexOf(randomNumber) === -1) {
+            randomNumbers.push(randomNumber);
+        }
+    }
+    return randomNumbers;
+}
+
+/******************************************************************************
  *                       Log In - "POST /users/login"
  ******************************************************************************/
 
 router.post('/login', async (req: Request, res: Response) => {
     try {
         const user = await (User as any).findByCredentials(req.body.email, req.body.password);
-        await user.save();
         const token = await user.generateAuthToken();
         res.send({user, token});
     } catch (e) {
@@ -58,7 +97,7 @@ router.post('/login', async (req: Request, res: Response) => {
                 httpStatus = UNAUTHORIZED;
                 message = 'Password is incorrect...';
                 break;
-            case USER_ERROR.EMAIL_NOT_FOUND:
+            case USER_ERROR.LOGIN_NOT_FOUND:
                 httpStatus = NOT_FOUND;
                 message = 'Could not find user with given e-mail address...';
                 break;

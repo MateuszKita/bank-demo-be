@@ -14,8 +14,6 @@ export const UserSchema: Schema = new Schema({
     password: [{
         type: String,
         required: true,
-        minlength: 1,
-        maxlength: 1,
         trim: true
     }],
     tokens: [{
@@ -72,7 +70,10 @@ export const UserSchema: Schema = new Schema({
         minlength: 26,
         maxlength: 26,
         required: true
-    }
+    },
+    randomIndexes: [{
+        type: Number
+    }]
 });
 
 async function hashPassword(password: string[]) {
@@ -121,7 +122,7 @@ UserSchema.statics.findByLogin = async (login: string) => {
     const user = await User.findOne({login});
 
     if (!user) {
-        throw new Error(USER_ERROR.EMAIL_NOT_FOUND);
+        throw new Error(USER_ERROR.LOGIN_NOT_FOUND);
     }
 
     return user;
@@ -135,7 +136,7 @@ UserSchema.statics.findByCredentials = async (login: string, password: string[])
     const user = await User.findOne({login});
 
     if (!user) {
-        throw new Error(USER_ERROR.EMAIL_NOT_FOUND);
+        throw new Error(USER_ERROR.LOGIN_NOT_FOUND);
     }
 
     const isMatch = compareHashedStringArray(password, user.password);

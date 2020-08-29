@@ -19,6 +19,7 @@ export interface IUser {
         father: string;
     };
     accountNumber: string;
+    randomIndexes: number[];
 }
 
 export interface IUserDTO extends IUser, Document {
