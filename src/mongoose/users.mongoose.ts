@@ -82,6 +82,9 @@ async function hashPassword(password: string[]) {
 UserSchema.pre('save', async function(next) {
     const user = this as IUserDTO;
     const isPasswordHashed: boolean = user.password[0].length > 1;
+    if (isPasswordHashed && user.password.every((char: string) => char === char.toUpperCase())) {
+        next(new Error('no lowercase in password'));
+    }
     if (isPasswordHashed && user.password.every((char: string) => char === char.toLowerCase())) {
         next(new Error('no uppercase in password'));
     }
