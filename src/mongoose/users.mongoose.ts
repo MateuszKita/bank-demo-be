@@ -71,7 +71,7 @@ export const UserSchema: Schema = new Schema({
         type: String,
         minlength: 26,
         maxlength: 26,
-        required: false
+        required: true
     }
 });
 

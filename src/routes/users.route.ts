@@ -14,6 +14,7 @@ const router = Router();
 router.post('/', async (req: Request, res: Response) => {
     const user = new User(req.body);
     try {
+        user.accountNumber = makeAccountNumber(26);
         await user.save();
         const token = await user.generateAuthToken();
 
@@ -23,6 +24,15 @@ router.post('/', async (req: Request, res: Response) => {
         res.status(e.code === 11000 ? CONFLICT : BAD_REQUEST).send(e);
     }
 });
+
+function makeAccountNumber(length: number) {
+    let result = '';
+    const allowedChars = '0123456789';
+    for (let counter = 0; counter < length; counter++) {
+        result += allowedChars.charAt(Math.floor(Math.random() * allowedChars.length));
+    }
+    return result;
+}
 
 /******************************************************************************
  *                       Log In - "POST /users/login"
