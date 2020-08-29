@@ -16,6 +16,7 @@ router.post('/', async (req: Request, res: Response) => {
     try {
         user.accountNumber = generateRandomNumber(26);
         const {firstName, lastName}: IUser = req.body;
+        // TODO : validate is login unique
         user.login = generateLogin(firstName, lastName);
         await user.save();
         const token = await user.generateAuthToken();
