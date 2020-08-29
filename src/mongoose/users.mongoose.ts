@@ -1,5 +1,4 @@
 import {compare, hash} from 'bcryptjs';
-import isEmail = require('validator/lib/isEmail');
 import {Schema, Model, model} from 'mongoose';
 import {JWT_KEY} from '../shared/constants';
 import {sign} from 'jsonwebtoken';
@@ -7,57 +6,85 @@ import {IUserDTO} from '../models/users.model';
 import {USER_ERROR} from '../models/users.constans';
 
 export const UserSchema: Schema = new Schema({
-    name: {
+    login: {
         type: String,
         required: true,
         trim: true
     },
-    email: {
-        type: String,
-        unique: true,
-        required: true,
-        trim: true,
-        lowercase: true,
-        validate(value: string) {
-            const emailIsValid = isEmail(value);
-            if (!emailIsValid) {
-                throw new Error('Email is invalid');
-            }
-            return emailIsValid;
-        }
-    },
-    password: {
+    password: [{
         type: String,
         required: true,
-        minlength: 7,
-        trim: true,
-        validate(value: string) {
-            // const passwordIncludesIncorrectWords = value.toLowerCase().includes('password');
-            //             // if (passwordIncludesIncorrectWords) {
-            //             //     throw new Error('Password cannot contain "password"');
-            //             // }
-            //             // return !passwordIncludesIncorrectWords;
-            return true;
-        }
-    },
+        minlength: 1,
+        maxlength: 1,
+        trim: true
+    }],
     tokens: [{
         token: {
             type: String,
             required: true
         }
-    }]
+    }],
+    firstName: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    lastName: {
+        type: String,
+        required: true,
+        trim: true
+    },
+    dateOfBirth: {
+        type: String,
+        required: true
+    },
+    address: {
+        postalCode: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        city: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        street: {
+            type: String,
+            required: true,
+            trim: true
+        }
+    },
+    parentsNames: {
+        mother: {
+            type: String,
+            required: true,
+            trim: true
+        },
+        father: {
+            type: String,
+            required: true,
+            trim: true
+        }
+    },
+    accountNumber: {
+        type: String,
+        minlength: 26,
+        maxlength: 26,
+        required: false
+    }
 });
+
+async function hashPassword(password: string[]) {
+    return Promise.all(password.map((char: string) => hash(char, 8)));
+}
 
 UserSchema.pre('save', async function(next) {
     const user = this as IUserDTO;
     if (user.isModified('password')) {
-        user.password = await hash(user.password, 8);
+        // TODO : Adjust to masked password
+        user.password = await hashPassword(user.password);
     }
-    next();
-});
-
-UserSchema.pre('remove', async function(next) {
-    const user = this;
     next();
 });
 
@@ -81,14 +108,28 @@ UserSchema.methods.generateAuthToken = async function() {
     return token;
 };
 
-UserSchema.statics.findByCredentials = async (email: string, password: string) => {
-    const user = await User.findOne({email});
+UserSchema.statics.findByLogin = async (login: string) => {
+    const user = await User.findOne({login});
 
     if (!user) {
         throw new Error(USER_ERROR.EMAIL_NOT_FOUND);
     }
 
-    const isMatch = await compare(password, user.password);
+    return user;
+};
+
+async function compareHashedStringArray(password: string[], hashedPassword: string[]) {
+    return password.every((char: string, index: number) => compare(char, hashedPassword[index]));
+}
+
+UserSchema.statics.findByCredentials = async (login: string, password: string[]) => {
+    const user = await User.findOne({login});
+
+    if (!user) {
+        throw new Error(USER_ERROR.EMAIL_NOT_FOUND);
+    }
+
+    const isMatch = compareHashedStringArray(password, user.password);
 
     if (!isMatch) {
         throw new Error(USER_ERROR.PASSWORD_INCORRECT);

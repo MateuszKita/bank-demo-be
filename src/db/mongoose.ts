@@ -16,7 +16,7 @@ export const connectToMongo = async () => {
         };
 
         const connectWithRetry = async () => {
-            console.log(connectionRetries === 0 ? 'Trying to connect to MongoDB' : 'Retrying to connect to MongoD');
+            console.log(connectionRetries === 0 ? 'Trying to connect to MongoDB...' : 'Retrying to connect to MongoD...');
             await connect(mongoUrl, options).then(() => {
                 console.log('MongoDB is connected');
             }).catch((err) => {
