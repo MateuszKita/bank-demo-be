@@ -4,11 +4,11 @@ import {Document} from 'mongoose';
 export interface IUser {
     _id: ObjectId | any;
     login: string;
-    password: string;
+    password: string[];
     tokens: IUserToken[];
     firstName: string;
     lastName: string;
-    dateOfBirth: Date;
+    dateOfBirth: string;
     address: {
         postalCode: string;
         city: string;

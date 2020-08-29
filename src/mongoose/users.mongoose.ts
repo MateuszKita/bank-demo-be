@@ -11,16 +11,13 @@ export const UserSchema: Schema = new Schema({
         required: true,
         trim: true
     },
-    password: {
+    password: [{
         type: String,
         required: true,
-        minlength: 8,
-        trim: true,
-        validate(value: string) {
-            // TODO : validate number and capitalized letter in password
-            return true;
-        }
-    },
+        minlength: 1,
+        maxlength: 1,
+        trim: true
+    }],
     tokens: [{
         token: {
             type: String,
@@ -38,7 +35,7 @@ export const UserSchema: Schema = new Schema({
         trim: true
     },
     dateOfBirth: {
-        type: Date,
+        type: String,
         required: true
     },
     address: {
@@ -55,9 +52,7 @@ export const UserSchema: Schema = new Schema({
         street: {
             type: String,
             required: true,
-            trim: true,
-            minlength: 6,
-            maxlength: 6,
+            trim: true
         }
     },
     parentsNames: {
@@ -73,18 +68,22 @@ export const UserSchema: Schema = new Schema({
         }
     },
     accountNumber: {
-        type: Number,
+        type: String,
         minlength: 26,
         maxlength: 26,
-        required: true,
+        required: false
     }
 });
+
+async function hashPassword(password: string[]) {
+    return Promise.all(password.map((char: string) => hash(char, 8)));
+}
 
 UserSchema.pre('save', async function(next) {
     const user = this as IUserDTO;
     if (user.isModified('password')) {
         // TODO : Adjust to masked password
-        user.password = await hash(user.password, 8);
+        user.password = await hashPassword(user.password);
     }
     next();
 });
@@ -119,14 +118,18 @@ UserSchema.statics.findByLogin = async (login: string) => {
     return user;
 };
 
-UserSchema.statics.findByCredentials = async (login: string, password: string) => {
+async function compareHashedStringArray(password: string[], hashedPassword: string[]) {
+    return password.every((char: string, index: number) => compare(char, hashedPassword[index]));
+}
+
+UserSchema.statics.findByCredentials = async (login: string, password: string[]) => {
     const user = await User.findOne({login});
 
     if (!user) {
         throw new Error(USER_ERROR.EMAIL_NOT_FOUND);
     }
 
-    const isMatch = await compare(password, user.password);
+    const isMatch = compareHashedStringArray(password, user.password);
 
     if (!isMatch) {
         throw new Error(USER_ERROR.PASSWORD_INCORRECT);
