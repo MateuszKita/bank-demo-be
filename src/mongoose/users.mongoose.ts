@@ -14,8 +14,6 @@ export const UserSchema: Schema = new Schema({
     password: [{
         type: String,
         required: true,
-        minlength: 1,
-        maxlength: 1,
         trim: true
     }],
     tokens: [{
@@ -71,8 +69,11 @@ export const UserSchema: Schema = new Schema({
         type: String,
         minlength: 26,
         maxlength: 26,
-        required: false
-    }
+        required: true
+    },
+    randomIndexes: [{
+        type: Number
+    }]
 });
 
 async function hashPassword(password: string[]) {
@@ -81,8 +82,17 @@ async function hashPassword(password: string[]) {
 
 UserSchema.pre('save', async function(next) {
     const user = this as IUserDTO;
+    const isPasswordHashed: boolean = user.password[0].length > 1;
+    if (isPasswordHashed && user.password.every((char: string) => char === char.toUpperCase())) {
+        next(new Error('no lowercase in password'));
+    }
+    if (isPasswordHashed && user.password.every((char: string) => char === char.toLowerCase())) {
+        next(new Error('no uppercase in password'));
+    }
+    if (isPasswordHashed && !user.password.some((char: string) => !/^\d$/.test(char))) {
+        next(new Error('no digit in password'));
+    }
     if (user.isModified('password')) {
-        // TODO : Adjust to masked password
         user.password = await hashPassword(user.password);
     }
     next();
@@ -112,7 +122,7 @@ UserSchema.statics.findByLogin = async (login: string) => {
     const user = await User.findOne({login});
 
     if (!user) {
-        throw new Error(USER_ERROR.EMAIL_NOT_FOUND);
+        throw new Error(USER_ERROR.LOGIN_NOT_FOUND);
     }
 
     return user;
@@ -126,7 +136,7 @@ UserSchema.statics.findByCredentials = async (login: string, password: string[])
     const user = await User.findOne({login});
 
     if (!user) {
-        throw new Error(USER_ERROR.EMAIL_NOT_FOUND);
+        throw new Error(USER_ERROR.LOGIN_NOT_FOUND);
     }
 
     const isMatch = compareHashedStringArray(password, user.password);

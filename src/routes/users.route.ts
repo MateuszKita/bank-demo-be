@@ -1,7 +1,7 @@
 import {Request, Response, Router} from 'express';
 import {BAD_REQUEST, CONFLICT, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, UNAUTHORIZED} from 'http-status-codes';
 import {User} from '../mongoose/users.mongoose';
-import {IAuthorizedRequest, IUserDTO} from '../models/users.model';
+import {IAuthorizedRequest, IUser, IUserDTO} from '../models/users.model';
 import {auth} from '../middleware/authorization';
 import {USER_ERROR} from '../models/users.constans';
 
@@ -14,15 +14,71 @@ const router = Router();
 router.post('/', async (req: Request, res: Response) => {
     const user = new User(req.body);
     try {
+        user.accountNumber = generateRandomNumber(26);
+        const {firstName, lastName}: IUser = req.body;
+        // TODO : validate is login unique
+        user.login = generateLogin(firstName, lastName);
         await user.save();
         const token = await user.generateAuthToken();
-
-        res.status(CREATED).send({user, token});
+        res.status(CREATED).send({login: user.login, token});
     } catch (e) {
         console.error(e);
-        res.status(e.code === 11000 ? CONFLICT : BAD_REQUEST).send(e);
+        res.status(e.code === 11000 ? CONFLICT : BAD_REQUEST).send({message: e.message});
     }
 });
+
+function generateRandomNumber(length: number) {
+    let result = '';
+    const allowedChars = '0123456789';
+    for (let counter = 0; counter < length; counter++) {
+        result += allowedChars.charAt(Math.floor(Math.random() * allowedChars.length));
+    }
+    return result;
+}
+
+function generateLogin(firstName: string, lastName: string) {
+    return `${firstName}${lastName}${generateRandomNumber(6)}`.toLowerCase();
+}
+
+/******************************************************************************
+ *                       Get login data (random indexes of password) - "GET /users/login"
+ ******************************************************************************/
+
+router.get('/login', async (req: Request, res: Response) => {
+    try {
+        const user = await (User as any).findByLogin(req.body.login);
+        let randomIndexesForMask: number[] = [];
+        while (randomIndexesForMask.length === 0 || randomIndexesForMask.every((indexForMask) => indexForMask >= user.password.length)) {
+            randomIndexesForMask = getUniqueRandomNumbersInRange(6, 20);
+        }
+        user.randomIndexes = randomIndexesForMask;
+        await user.save();
+        res.send({indexesForMask: randomIndexesForMask});
+    } catch (e) {
+        console.error(e);
+        let httpStatus = BAD_REQUEST;
+        let message = 'Could not get login data';
+        switch (e.message) {
+            case USER_ERROR.LOGIN_NOT_FOUND:
+                httpStatus = NOT_FOUND;
+                message = 'Could not find user with given login';
+                break;
+            default:
+        }
+        res.status(httpStatus).send({message});
+    }
+});
+
+function getUniqueRandomNumbersInRange(count: number, range: number) {
+    const randomNumbers = [];
+    while (randomNumbers.length < count) {
+        const randomNumber = Math.floor(Math.random() * range) + 1;
+        if (randomNumbers.indexOf(randomNumber) === -1) {
+            randomNumbers.push(randomNumber);
+        }
+    }
+    return randomNumbers;
+}
 
 /******************************************************************************
  *                       Log In - "POST /users/login"
@@ -31,7 +87,6 @@ router.post('/', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
     try {
         const user = await (User as any).findByCredentials(req.body.email, req.body.password);
-        await user.save();
         const token = await user.generateAuthToken();
         res.send({user, token});
     } catch (e) {
@@ -42,7 +97,7 @@ router.post('/login', async (req: Request, res: Response) => {
                 httpStatus = UNAUTHORIZED;
                 message = 'Password is incorrect...';
                 break;
-            case USER_ERROR.EMAIL_NOT_FOUND:
+            case USER_ERROR.LOGIN_NOT_FOUND:
                 httpStatus = NOT_FOUND;
                 message = 'Could not find user with given e-mail address...';
                 break;
@@ -61,38 +116,10 @@ router.get('/me', auth, async (req: Request, res: Response) => {
 });
 
 /******************************************************************************
- *                      Get all users simple list / Specific User - "GET /users/"
- ******************************************************************************/
-
-router.get('/', auth, async (req: Request, res: Response) => {
-    const users = await User.find({});
-    res.send(users);
-});
-
-/******************************************************************************
- *                      Log out User / Specific User - "POST /users/logout?"
+ *                      Log all User everywhere - "POST /users/logout"
  ******************************************************************************/
 
 router.post('/logout', auth, async (req: Request, res: Response) => {
-    try {
-        const authorizedRequest: IAuthorizedRequest = (req as any as IAuthorizedRequest);
-        authorizedRequest.user.tokens = authorizedRequest.user.tokens.filter((token) => {
-            return token.token !== authorizedRequest.token;
-        });
-        await authorizedRequest.user.save();
-
-        res.send();
-    } catch (e) {
-        console.error(e);
-        res.status(INTERNAL_SERVER_ERROR).send(e);
-    }
-});
-
-/******************************************************************************
- *                      Log all User everywhere - "POST /users/logoutAll?"
- ******************************************************************************/
-
-router.post('/logoutAll', auth, async (req: Request, res: Response) => {
     try {
         const authorizedRequest: IAuthorizedRequest = (req as any as IAuthorizedRequest);
         authorizedRequest.user.tokens = [];
@@ -101,47 +128,6 @@ router.post('/logoutAll', auth, async (req: Request, res: Response) => {
     } catch (e) {
         console.error(e);
         res.status(INTERNAL_SERVER_ERROR).send(e);
-    }
-});
-
-/******************************************************************************
- *                       Update User - "PATCH /users/:id"
- ******************************************************************************/
-
-router.patch('/:id', auth, async (req: Request, res: Response) => {
-    const updates = Object.keys(req.body).length > 0 ? Object.keys(req.body) : [];
-    const allowedUpdates = ['name', 'email', 'password', 'age'];
-    const isValidOperation = updates.every((update) => allowedUpdates.includes(update)) && updates.length > 0;
-
-    if (!isValidOperation) {
-        return res.status(BAD_REQUEST).send({error: 'Invalid updates!'});
-    }
-
-    try {
-        const authorizedUser: IUserDTO = (req as any as IAuthorizedRequest).user;
-        if (authorizedUser) {
-            updates.forEach((update) => (authorizedUser as any)[update] = req.body[update]);
-            await authorizedUser.save();
-        } else {
-            return res.status(NOT_FOUND).send();
-        }
-        res.send(authorizedUser);
-    } catch (e) {
-        res.status(BAD_REQUEST).send(e);
-    }
-});
-
-/******************************************************************************
- *                    Delete - "DELETE /users/:id"
- ******************************************************************************/
-
-router.delete('/me', auth, async (req: Request, res: Response) => {
-    try {
-        const authorizedUser: IUserDTO = (req as any as IAuthorizedRequest).user;
-        await authorizedUser.remove();
-        res.send(authorizedUser);
-    } catch (e) {
-        res.status(INTERNAL_SERVER_ERROR).send();
     }
 });
 
