@@ -81,8 +81,14 @@ async function hashPassword(password: string[]) {
 
 UserSchema.pre('save', async function(next) {
     const user = this as IUserDTO;
+    const isPasswordHashed: boolean = user.password[0].length > 1;
+    if (isPasswordHashed && user.password.every((char: string) => char === char.toLowerCase())) {
+        next(new Error('no uppercase in password'));
+    }
+    if (isPasswordHashed && !user.password.some((char: string) => !/^\d$/.test(char))) {
+        next(new Error('no digit in password'));
+    }
     if (user.isModified('password')) {
-        // TODO : Adjust to masked password
         user.password = await hashPassword(user.password);
     }
     next();

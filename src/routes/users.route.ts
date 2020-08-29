@@ -1,7 +1,7 @@
 import {Request, Response, Router} from 'express';
 import {BAD_REQUEST, CONFLICT, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, UNAUTHORIZED} from 'http-status-codes';
 import {User} from '../mongoose/users.mongoose';
-import {IAuthorizedRequest, IUserDTO} from '../models/users.model';
+import {IAuthorizedRequest, IUser, IUserDTO} from '../models/users.model';
 import {auth} from '../middleware/authorization';
 import {USER_ERROR} from '../models/users.constans';
 
@@ -14,24 +14,29 @@ const router = Router();
 router.post('/', async (req: Request, res: Response) => {
     const user = new User(req.body);
     try {
-        user.accountNumber = makeAccountNumber(26);
+        user.accountNumber = generateRandomNumber(26);
+        const {firstName, lastName}: IUser = req.body;
+        user.login = generateLogin(firstName, lastName);
         await user.save();
         const token = await user.generateAuthToken();
-
-        res.status(CREATED).send({user, token});
+        res.status(CREATED).send({login: user.login, token});
     } catch (e) {
         console.error(e);
-        res.status(e.code === 11000 ? CONFLICT : BAD_REQUEST).send(e);
+        res.status(e.code === 11000 ? CONFLICT : BAD_REQUEST).send({message: e.message});
     }
 });
 
-function makeAccountNumber(length: number) {
+function generateRandomNumber(length: number) {
     let result = '';
     const allowedChars = '0123456789';
     for (let counter = 0; counter < length; counter++) {
         result += allowedChars.charAt(Math.floor(Math.random() * allowedChars.length));
     }
     return result;
+}
+
+function generateLogin(firstName: string, lastName: string) {
+    return `${firstName}${lastName}${generateRandomNumber(6)}`.toLowerCase();
 }
 
 /******************************************************************************
