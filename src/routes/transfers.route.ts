@@ -9,7 +9,7 @@ import {User} from '../mongoose/users.mongoose';
 const router = Router();
 
 /******************************************************************************
- *                      Get all user's money transfers - "GET /transfers/"
+ *                      Get all user's money transfers - "GET /transfers/history"
  ******************************************************************************/
 
 router.get('/history', auth, async (req: Request, res: Response) => {
@@ -19,15 +19,15 @@ router.get('/history', auth, async (req: Request, res: Response) => {
 });
 
 /******************************************************************************
- *                      Perform money transfer - "POST /transfers/"
+ *                      Perform money transfer - "POST /transfers/new/"
  ******************************************************************************/
 
-router.get('/', auth, async (req: Request, res: Response) => {
+router.post('/new', auth, async (req: Request, res: Response) => {
     try {
         const {recipientData, amount, title} = req.body;
         const user: IUserDTO = (req as any as IAuthorizedRequest).user;
-        if (amount < user.money) {
-            throw new Error('no-enough-money');
+        if (amount > user.money) {
+            throw new Error('not-enough-money');
         }
         const senderData: ITransferUser = {
             name: `${user.firstName} ${user.lastName}`,
