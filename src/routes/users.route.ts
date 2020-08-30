@@ -1,7 +1,7 @@
 import {Request, Response, Router} from 'express';
 import {BAD_REQUEST, CONFLICT, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, UNAUTHORIZED} from 'http-status-codes';
 import {User} from '../mongoose/users.mongoose';
-import {IAuthorizedRequest, IUser} from '../models/users.model';
+import {IAuthorizedRequest, IUser, IUserDTO} from '../models/users.model';
 import {auth} from '../middleware/authorization';
 import {USER_ERROR} from '../models/users.constans';
 
@@ -13,6 +13,7 @@ const router = Router();
 
 router.post('/', async (req: Request, res: Response) => {
     const user = new User(req.body);
+    // TODO : add age validation
     try {
         user.accountNumber = generateRandomNumber(26);
         const {firstName, lastName}: IUser = req.body;
@@ -40,12 +41,12 @@ function generateLogin(firstName: string, lastName: string) {
 }
 
 /******************************************************************************
- *       Get login data (random indexes of password) - "GET /users/login"
+ *       Get login data (random indexes of password) - "GET /users/login/:login"
  ******************************************************************************/
 
-router.get('/login', async (req: Request, res: Response) => {
+router.get('/login/:login', async (req: Request, res: Response) => {
     try {
-        const user = await (User as any).findByLogin(req.body.login);
+        const user = await (User as any).findByLogin(req.params.login);
         let randomIndexesForMask: number[] = [];
         while (randomIndexesForMask.length === 0 || randomIndexesForMask.every((indexForMask) => indexForMask >= user.password.length)) {
             randomIndexesForMask = getUniqueRandomNumbersInRange(6, 20);
@@ -121,7 +122,7 @@ router.post('/login', async (req: Request, res: Response) => {
  ******************************************************************************/
 
 router.get('/me', auth, async (req: Request, res: Response) => {
-    const user: IUser = (req as any as IAuthorizedRequest).user;
+    const user: IUserDTO = (req as any as IAuthorizedRequest).user;
     const {firstName, lastName, dateOfBirth, address, parentsNames, accountNumber} = user;
     res.send({firstName, lastName, dateOfBirth, address, parentsNames, accountNumber});
 });
