@@ -1,7 +1,7 @@
 import {Request, Response, Router} from 'express';
 import {BAD_REQUEST, CONFLICT, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, UNAUTHORIZED} from 'http-status-codes';
 import {User} from '../mongoose/users.mongoose';
-import {IAuthorizedRequest, IUser, IUserDTO} from '../models/users.model';
+import {IAuthorizedRequest, IUser} from '../models/users.model';
 import {auth} from '../middleware/authorization';
 import {USER_ERROR} from '../models/users.constans';
 
@@ -19,8 +19,7 @@ router.post('/', async (req: Request, res: Response) => {
         // TODO : validate is login unique
         user.login = generateLogin(firstName, lastName);
         await user.save();
-        const token = await user.generateAuthToken();
-        res.status(CREATED).send({login: user.login, token});
+        res.status(CREATED).send({login: user.login});
     } catch (e) {
         console.error(e);
         res.status(e.code === 11000 ? CONFLICT : BAD_REQUEST).send({message: e.message});
@@ -41,7 +40,7 @@ function generateLogin(firstName: string, lastName: string) {
 }
 
 /******************************************************************************
- *                       Get login data (random indexes of password) - "GET /users/login"
+ *       Get login data (random indexes of password) - "GET /users/login"
  ******************************************************************************/
 
 router.get('/login', async (req: Request, res: Response) => {
@@ -86,10 +85,20 @@ function getUniqueRandomNumbersInRange(count: number, range: number) {
 
 router.post('/login', async (req: Request, res: Response) => {
     try {
-        const user = await (User as any).findByCredentials(req.body.email, req.body.password);
+        const {login, password} = req.body as IUser;
+        if (password.length !== 6) {
+            throw new Error(USER_ERROR.PASSWORD_INCORRECT);
+        }
+        const user = await (User as any).findByCredentials(login, password);
+        if (user.randomIndexes.length !== 6) {
+            throw new Error(USER_ERROR.PASSWORD_INCORRECT);
+        }
         const token = await user.generateAuthToken();
-        res.send({user, token});
+        user.randomIndexes = [];
+        await user.save();
+        res.send({token});
     } catch (e) {
+        console.error(e);
         let httpStatus = BAD_REQUEST;
         let message = 'Could not log in...';
         switch (e.message) {
@@ -108,15 +117,17 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 /******************************************************************************
- *                      Get info about User / Specific User - "GET /users/me"
+ *                      Get info about current User - "GET /users/me"
  ******************************************************************************/
 
 router.get('/me', auth, async (req: Request, res: Response) => {
-    res.send((req as any as IAuthorizedRequest).user);
+    const user: IUser = (req as any as IAuthorizedRequest).user;
+    const {firstName, lastName, dateOfBirth, address, parentsNames, accountNumber} = user;
+    res.send({firstName, lastName, dateOfBirth, address, parentsNames, accountNumber});
 });
 
 /******************************************************************************
- *                      Log all User everywhere - "POST /users/logout"
+ *                      Log out user - "POST /users/logout"
  ******************************************************************************/
 
 router.post('/logout', auth, async (req: Request, res: Response) => {

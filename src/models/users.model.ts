@@ -20,6 +20,7 @@ export interface IUser {
     };
     accountNumber: string;
     randomIndexes: number[];
+    money: number;
 }
 
 export interface IUserDTO extends IUser, Document {
