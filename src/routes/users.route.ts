@@ -1,7 +1,7 @@
 import {Request, Response, Router} from 'express';
 import {BAD_REQUEST, CONFLICT, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, UNAUTHORIZED} from 'http-status-codes';
 import {User} from '../mongoose/users.mongoose';
-import {IAuthorizedRequest, IUser} from '../models/users.model';
+import {IAuthorizedRequest, IUser, IUserDTO} from '../models/users.model';
 import {auth} from '../middleware/authorization';
 import {USER_ERROR} from '../models/users.constans';
 
@@ -121,7 +121,7 @@ router.post('/login', async (req: Request, res: Response) => {
  ******************************************************************************/
 
 router.get('/me', auth, async (req: Request, res: Response) => {
-    const user: IUser = (req as any as IAuthorizedRequest).user;
+    const user: IUserDTO = (req as any as IAuthorizedRequest).user;
     const {firstName, lastName, dateOfBirth, address, parentsNames, accountNumber} = user;
     res.send({firstName, lastName, dateOfBirth, address, parentsNames, accountNumber});
 });
