@@ -45,7 +45,7 @@ router.post('/new', auth, async (req: Request, res: Response) => {
             senderData,
             recipientData
         });
-        const recipient: IUserDTO | null = await User.findOne({accountNumber: recipientData.accountNumbe});
+        const recipient: IUserDTO | null = await User.findOne({accountNumber: recipientData.accountNumber});
         if (recipient) {
             await newTransfer.save();
             recipient.money += amount;
