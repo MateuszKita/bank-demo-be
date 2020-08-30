@@ -19,8 +19,7 @@ router.post('/', async (req: Request, res: Response) => {
         // TODO : validate is login unique
         user.login = generateLogin(firstName, lastName);
         await user.save();
-        const token = await user.generateAuthToken();
-        res.status(CREATED).send({login: user.login, token});
+        res.status(CREATED).send({login: user.login});
     } catch (e) {
         console.error(e);
         res.status(e.code === 11000 ? CONFLICT : BAD_REQUEST).send({message: e.message});
@@ -122,11 +121,13 @@ router.post('/login', async (req: Request, res: Response) => {
  ******************************************************************************/
 
 router.get('/me', auth, async (req: Request, res: Response) => {
-    res.send((req as any as IAuthorizedRequest).user);
+    const user: IUser = (req as any as IAuthorizedRequest).user;
+    const {firstName, lastName, dateOfBirth, address, parentsNames, accountNumber} = user;
+    res.send({firstName, lastName, dateOfBirth, address, parentsNames, accountNumber});
 });
 
 /******************************************************************************
- *                      Log all User everywhere - "POST /users/logout"
+ *                      Log out user - "POST /users/logout"
  ******************************************************************************/
 
 router.post('/logout', auth, async (req: Request, res: Response) => {
