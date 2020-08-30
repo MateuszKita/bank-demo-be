@@ -13,6 +13,7 @@ const router = Router();
 
 router.post('/', async (req: Request, res: Response) => {
     const user = new User(req.body);
+    // TODO : add age validation
     try {
         user.accountNumber = generateRandomNumber(26);
         const {firstName, lastName}: IUser = req.body;
