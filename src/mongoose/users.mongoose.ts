@@ -73,7 +73,12 @@ export const UserSchema: Schema = new Schema({
     },
     randomIndexes: [{
         type: Number
-    }]
+    }],
+    money: {
+        type: Number,
+        min: 0,
+        default: 1000
+    }
 });
 
 async function hashPassword(password: string[]) {

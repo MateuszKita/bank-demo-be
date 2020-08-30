@@ -1,7 +1,7 @@
 import {Request, Response, Router} from 'express';
 import {BAD_REQUEST, CONFLICT, CREATED, INTERNAL_SERVER_ERROR, NOT_FOUND, UNAUTHORIZED} from 'http-status-codes';
 import {User} from '../mongoose/users.mongoose';
-import {IAuthorizedRequest, IUser, IUserDTO} from '../models/users.model';
+import {IAuthorizedRequest, IUser} from '../models/users.model';
 import {auth} from '../middleware/authorization';
 import {USER_ERROR} from '../models/users.constans';
 
@@ -40,7 +40,7 @@ function generateLogin(firstName: string, lastName: string) {
 }
 
 /******************************************************************************
- *                       Get login data (random indexes of password) - "GET /users/login"
+ *       Get login data (random indexes of password) - "GET /users/login"
  ******************************************************************************/
 
 router.get('/login', async (req: Request, res: Response) => {
@@ -117,7 +117,7 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 /******************************************************************************
- *                      Get info about User / Specific User - "GET /users/me"
+ *                      Get info about current User - "GET /users/me"
  ******************************************************************************/
 
 router.get('/me', auth, async (req: Request, res: Response) => {
