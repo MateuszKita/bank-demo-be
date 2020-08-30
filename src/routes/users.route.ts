@@ -41,12 +41,12 @@ function generateLogin(firstName: string, lastName: string) {
 }
 
 /******************************************************************************
- *       Get login data (random indexes of password) - "GET /users/login"
+ *       Get login data (random indexes of password) - "GET /users/login/:login"
  ******************************************************************************/
 
-router.get('/login', async (req: Request, res: Response) => {
+router.get('/login/:login', async (req: Request, res: Response) => {
     try {
-        const user = await (User as any).findByLogin(req.body.login);
+        const user = await (User as any).findByLogin(req.params.login);
         let randomIndexesForMask: number[] = [];
         while (randomIndexesForMask.length === 0 || randomIndexesForMask.every((indexForMask) => indexForMask >= user.password.length)) {
             randomIndexesForMask = getUniqueRandomNumbersInRange(6, 20);
