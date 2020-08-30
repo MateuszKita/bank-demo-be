@@ -12,7 +12,7 @@ const router = Router();
  *                      Get all user's money transfers - "GET /transfers/"
  ******************************************************************************/
 
-router.get('/transfers', auth, async (req: Request, res: Response) => {
+router.get('/history', auth, async (req: Request, res: Response) => {
     const user: IUserDTO = (req as any as IAuthorizedRequest).user;
     const transfers = await Transfer.find({senderData: {accountNumber: user.accountNumber}});
     res.send(transfers);
@@ -22,7 +22,7 @@ router.get('/transfers', auth, async (req: Request, res: Response) => {
  *                      Perform money transfer - "POST /transfers/"
  ******************************************************************************/
 
-router.get('/transfers', auth, async (req: Request, res: Response) => {
+router.get('/', auth, async (req: Request, res: Response) => {
     try {
         const {recipientData, amount, title} = req.body;
         const user: IUserDTO = (req as any as IAuthorizedRequest).user;
