@@ -123,8 +123,8 @@ router.post('/login', async (req: Request, res: Response) => {
 
 router.get('/me', auth, async (req: Request, res: Response) => {
     const user: IUserDTO = (req as any as IAuthorizedRequest).user;
-    const {firstName, lastName, dateOfBirth, address, parentsNames, accountNumber} = user;
-    res.send({firstName, lastName, dateOfBirth, address, parentsNames, accountNumber});
+    const {firstName, lastName, dateOfBirth, address, parentsNames, accountNumber, money} = user;
+    res.send({firstName, lastName, dateOfBirth, address, parentsNames, accountNumber, money});
 });
 
 /******************************************************************************
